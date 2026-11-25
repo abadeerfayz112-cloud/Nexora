@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nexora 3D</title>
+<style>
+:root{color-scheme:dark;box-sizing:border-box;--bg:#0b0b0e;--panel:#14141a;--line:#2a2a33;--tx:#e9e7ee;--mu:#8d8a99;--ac:#b79be0;--ac2:#d9d6e0;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;min-height:100vh}
+header{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line)}
+header svg{width:38px;height:38px;flex:none}
+h1{font-size:19px;margin:0;letter-spacing:.5px}
+header small{color:var(--mu);display:block;font-size:12px}
+main{display:grid;gap:14px;padding:14px;max-width:1200px;margin:auto}
+@media(min-width:860px){main{grid-template-columns:1fr 340px}}
+#stage{position:relative;height:56vh;min-height:320px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:radial-gradient(circle at 50% 35%,#1b1b23,#09090c)}
+#stage canvas{display:block;width:100%;height:100%;touch-action:none}
+#hud{position:absolute;top:10px;inset-inline:12px;display:flex;justify-content:space-between;font-size:13px;color:var(--mu);pointer-events:none}
+#pad{position:absolute;bottom:12px;inset-inline:12px;display:none;justify-content:space-between;pointer-events:none}
+#pad div{display:grid;grid-template-columns:repeat(3,46px);gap:6px;pointer-events:auto;direction:ltr}
+#pad button{height:46px;border-radius:12px;border:1px solid var(--line);background:#1c1c24cc;color:var(--tx);font-size:18px;touch-action:none}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:12px}
+label{font-size:13px;color:var(--mu);display:flex;justify-content:space-between;gap:8px}
+label b{color:var(--tx);font-weight:500}
+input[type=range]{width:100%;accent-color:var(--ac)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+button.btn,.file{flex:1;min-width:120px;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:#1c1c24;color:var(--tx);font-size:14px;cursor:pointer;text-align:center}
+button.btn:hover,.file:hover{border-color:var(--ac)}
+.pri{background:linear-gradient(135deg,#d9d6e0,#a98bd4);color:#16121c!important;border:0!important;font-weight:600}
+.chk{display:flex;align-items:center;gap:8px;font-size:14px}
+#msg{font-size:12px;color:var(--mu);min-height:34px;line-height:1.5}
+canvas#pv{width:64px;height:64px;border-radius:8px;border:1px solid var(--line);background:repeating-conic-gradient(#222 0 25%,#2c2c34 0 50%) 0 0/12px 12px;align-self:flex-start}
+</style>
+</head>
+<body>
+<header>
+<svg viewBox="0 0 100 100" aria-label="Nexora"><defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eceaf0"/><stop offset="1" stop-color="#9f9aa8"/></linearGradient><linearGradient id="g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c9a6e6"/><stop offset=".5" stop-color="#e8e4ee"/><stop offset="1" stop-color="#b48fd6"/></linearGradient></defs><polygon points="8,30 8,94 70,94" fill="url(#g1)" stroke="#7d7886" stroke-width="1.5"/><polygon points="30,6 94,6 94,70" fill="url(#g2)" stroke="#7d7886" stroke-width="1.5"/><polygon points="22,56 22,80 40,80" fill="#0b0b0e"/><polygon points="80,20 80,44 62,20" fill="#0b0b0e"/></svg>
+<div><h1>Nexora 3D</h1><small>حوّل أي صورة إلى مجسم ثلاثي الأبعاد حقيقي</small></div>
+</header>
+<main>
+<section id="stage"><div id="hud"><span id="hl"></span><span id="hr"></span></div>
+<div id="pad"><div><span></span><button data-k="w">▲</button><span></span><button data-k="a">◀</button><button data-k="s">▼</button><button data-k="d">▶</button></div><div style="grid-template-columns:70px"><button data-k=" ">قفز</button></div></div></section>
+<section class="panel">
+<div class="row"><label class="file pri">رفع صورة<input id="f" type="file" accept="image/*" hidden></label><canvas id="pv" width="64" height="64"></canvas></div>
+<label>حساسية العزل <b id="sv">40</b></label><input id="sens" type="range" min="5" max="150" value="40">
+<label class="chk"><input id="inv" type="checkbox"> عكس التحديد</label>
+<label>سُمك المجسم <b id="dv">35</b></label><input id="dep" type="range" min="5" max="100" value="35">
+<label>حجم الحافة المشطوفة <b id="bv">40</b></label><input id="bev" type="range" min="0" max="100" value="40">
+<div class="row"><button class="btn" id="eg">تنزيل GLB</button><button class="btn" id="eo">تنزيل OBJ</button></div>
+<button class="btn pri" id="mode">دخول ساحة اللعب (Sandbox)</button>
+<div id="msg">ارفع صورة بخلفية سادة أو شفافة. الملفات تُنزَّل داخل ZIP لأن المتصفح هنا لا يسمح بامتداد glb مباشرة؛ فكّ الضغط وستجد الملف جاهزاً للعبة.</div>
+</section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/OBJExporter.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const msg=t=>$('msg').textContent=t;
+const stage=$('stage');
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+stage.insertBefore(renderer.domElement,stage.firstChild);
+const scene=new THREE.Scene();
+const cam=new THREE.PerspectiveCamera(40,1,.1,200);cam.position.set(0,0,5.5);
+scene.add(new THREE.HemisphereLight(0xd8d0ff,0x1a1a22,1.1));
+const dl=new THREE.DirectionalLight(0xffffff,1.6);dl.position.set(3,5,6);scene.add(dl);
+const dl2=new THREE.DirectionalLight(0xb48fd6,.9);dl2.position.set(-5,-2,-4);scene.add(dl2);
+const ctl=new THREE.OrbitControls(cam,renderer.domElement);ctl.enableDamping=true;ctl.autoRotate=true;ctl.autoRotateSpeed=2;
+const model=new THREE.Group();scene.add(model);
+const box=new THREE.Group();scene.add(box);box.visible=false;
+function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()}
+addEventListener('resize',resize);
+
+let tex=null,mask=null,mw=0,mh=0,mesh=null,mat=null;
+function loadDemo(){const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');const g=x.createLinearGradient(0,0,256,256);g.addColorStop(0,'#e6e3ea');g.addColorStop(1,'#b48fd0');x.fillStyle=g;x.font='900 230px Arial Black,Arial,sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('N',128,140);setSource(c)}
+function setSource(el){
+  const W=el.naturalWidth||el.width,H=el.naturalHeight||el.height;
+  const fit=(m)=>{const s=Math.min(1,m/Math.max(W,H));const c=document.createElement('canvas');c.width=Math.max(2,Math.round(W*s));c.height=Math.max(2,Math.round(H*s));c.getContext('2d',{willReadFrequently:true}).drawImage(el,0,0,c.width,c.height);return c};
+  window.texC=fit(512);window.maskC=fit(200);
+  const t=$('pv').getContext('2d');t.clearRect(0,0,64,64);rebuild();
+}
+function computeMask(){
+  const c=maskC,w=c.width,h=c.height,d=c.getContext('2d').getImageData(0,0,w,h).data;
+  let alpha=false;for(let i=3;i<d.length;i+=4)if(d[i]<250){alpha=true;break}
+  const th=+$('sens').value;let br=0,bg=0,bb=0,n=0;
+  if(!alpha){const add=(x,y)=>{const i=(y*w+x)*4;br+=d[i];bg+=d[i+1];bb+=d[i+2];n++};for(let x=0;x<w;x++){add(x,0);add(x,h-1)}for(let y=0;y<h;y++){add(0,y);add(w-1,y)}br/=n;bg/=n;bb/=n}
+  let m=new Float32Array(w*h);const inv=$('inv').checked;
+  for(let i=0;i<w*h;i++){let on=alpha?d[i*4+3]>128:Math.hypot(d[i*4]-br,d[i*4+1]-bg,d[i*4+2]-bb)>th;if(inv)on=!on;m[i]=on?1:0}
+  const o=new Float32Array(w*h);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){let s=0,k=0;for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){const xx=x+i,yy=y+j;if(xx>=0&&yy>=0&&xx<w&&yy<h){s+=m[yy*w+xx];k++}else k++}o[y*w+x]=s/k>.5?1:0}
+  mw=w;mh=h;return o;
+}
+function contours(m,w,h){
+  const W2=w+2,P=(x,y)=>(x<0||y<0||x>=w||y>=h)?0:m[y*w+x];
+  const adj=new Map();const K=(a,b)=>a+','+b;
+  const link=(a,b)=>{(adj.get(a)||adj.set(a,[]).get(a)).push(b);(adj.get(b)||adj.set(b,[]).get(b)).push(a)};
+  for(let j=-1;j<h;j++)for(let i=-1;i<w;i++){
+    const tl=P(i,j),tr=P(i+1,j),br=P(i+1,j+1),bl=P(i,j+1),c=tl*8+tr*4+br*2+bl;if(c==0||c==15)continue;
+    const T=K(2*i+3,2*j+2),R=K(2*i+4,2*j+3),B=K(2*i+3,2*j+4),L=K(2*i+2,2*j+3);
+    const S={1:[[L,B]],2:[[B,R]],3:[[L,R]],4:[[T,R]],5:[[T,R],[L,B]],6:[[T,B]],7:[[T,L]],8:[[T,L]],9:[[T,B]],10:[[T,L],[B,R]],11:[[T,R]],12:[[L,R]],13:[[B,R]],14:[[L,B]]}[c];
+    S.forEach(s=>link(s[0],s[1]));
+  }
+  const seen=new Set(),loops=[];
+  for(const k of adj.keys()){if(seen.has(k))continue;const pts=[];let cur=k;
+    while(cur&&!seen.has(cur)){seen.add(cur);const [a,b]=cur.split(',').map(Number);pts.push([(a-2)/2-0.0,(b-2)/2-0.0]);cur=(adj.get(cur)||[]).find(q=>!seen.has(q))}
+    if(pts.length>8)loops.push(rdp(pts,.7));
+  }
+  return loops;
+}
+function rdp(p,e){
+  const n=p.length;if(n<10)return p;
+  const f=(a,b)=>{if(b-a<2)return[p[a]];let mx=0,id=-1;const A=p[a],B=p[b],dx=B[0]-A[0],dy=B[1]-A[1],L=Math.hypot(dx,dy)||1e-9;
+    for(let i=a+1;i<b;i++){const d=Math.abs(dy*p[i][0]-dx*p[i][1]+B[0]*A[1]-B[1]*A[0])/L;if(d>mx){mx=d;id=i}}
+    return mx>e?f(a,id).concat(f(id,b)):[A]};
+  const h=n>>1;return f(0,h).concat(f(h,n-1)).concat([p[n-1]]);
+}
+const area=p=>{let s=0;for(let i=0;i<p.length;i++){const a=p[i],b=p[(i+1)%p.length];s+=a[0]*b[1]-b[0]*a[1]}return s/2};
+function inside(pt,poly){let c=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const a=poly[i],b=poly[j];if((a[1]>pt[1])!=(b[1]>pt[1])&&pt[0]<(b[0]-a[0])*(pt[1]-a[1])/(b[1]-a[1])+a[0])c=!c}return c}
+
+let timer;function later(){clearTimeout(timer);timer=setTimeout(rebuild,160)}
+function rebuild(){
+  if(!window.maskC)return;
+  $('sv').textContent=$('sens').value;$('dv').textContent=$('dep').value;$('bv').textContent=$('bev').value;
+  const m=computeMask(),w=mw,h=mh;
+  let loops=contours(m,w,h).filter(l=>l.length>=3&&Math.abs(area(l))>12);
+  if(!loops.length){msg('لم يتم العثور على عنصر. جرّب تغيير الحساسية أو عكس التحديد.');return}
+  loops.forEach(l=>l.sub=loops.filter(o=>o!==l&&inside(l[0],o)));
+  const shapes=[];const map=new Map();
+  loops.filter(l=>l.sub.length%2==0).forEach(l=>{const s=new THREE.Shape(l.map(p=>new THREE.Vector2(p[0],h-p[1])));shapes.push(s);map.set(l,s)});
+  loops.filter(l=>l.sub.length%2==1).forEach(l=>{const par=l.sub.sort((a,b)=>b.sub.length-a.sub.length)[0],s=map.get(par);if(s)s.holes.push(new THREE.Path(l.map(p=>new THREE.Vector2(p[0],h-p[1]))))});
+  const D=w*.0025*$('dep').value*2+2,bv=w*.0006*$('bev').value+(+$('bev').value?.2:0);
+  const g=new THREE.ExtrudeGeometry(shapes,{depth:D,bevelEnabled:bv>0,bevelThickness:bv,bevelSize:bv*.8,bevelSegments:3,curveSegments:1});
+  g.translate(-w/2,-h/2,-D/2);const k=2.6/Math.max(w,h);g.scale(k,k,k);
+  if(tex)tex.dispose();tex=new THREE.CanvasTexture(texC);tex.repeat.set(1/w,1/h);tex.encoding=THREE.sRGBEncoding;
+  // UVs are in shape space (pixels); texture transform maps them to 0..1 after translate/scale
+  tex.matrixAutoUpdate=false;const sx=1/(w*k),sy=1/(h*k);tex.matrix.set(sx,0,.5*1/1*0+(.5),0,sy,.5,0,0,1);
+  // UVs were generated before translate, so use plain repeat instead
+  tex.matrixAutoUpdate=true;tex.repeat.set(1/w,1/h);tex.offset.set(0,0);
+  const front=new THREE.MeshStandardMaterial({map:tex,metalness:.3,roughness:.45,name:'front'});
+  const side=new THREE.MeshStandardMaterial({color:0xa591bd,metalness:.7,roughness:.32,name:'side'});
+  if(mesh){mesh.geometry.dispose();model.remove(mesh)}
+  mesh=new THREE.Mesh(g,[front,side]);model.add(mesh);
+  const px=$('pv').getContext('2d');px.clearRect(0,0,64,64);const m2=document.createElement('canvas');m2.width=w;m2.height=h;const mx=m2.getContext('2d'),id=mx.createImageData(w,h);for(let i=0;i<w*h;i++){id.data[i*4]=id.data[i*4+1]=id.data[i*4+2]=230;id.data[i*4+3]=m[i]?255:0}mx.putImageData(id,0,0);const s=Math.min(64/w,64/h);px.drawImage(m2,0,0,w*s,h*s);
+  msg('تم إنشاء المجسم: '+shapes.length+' جزء. اسحب للتدوير، وعدّل الحساسية أو اعكس التحديد عند الحاجة.');
+}
+['sens','dep','bev'].forEach(i=>$(i).addEventListener('input',later));$('inv').addEventListener('change',later);
+$('f').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const im=new Image();im.onload=()=>{setSource(im);URL.revokeObjectURL(im.src)};im.onerror=()=>msg('تعذّر قراءة الصورة');im.src=URL.createObjectURL(f)});
+
+// ---- export
+async function save(name,data){try{const dl=await claude.use('downloads');if(!dl){msg('التنزيل غير متاح في هذا العرض.');return}await dl.save({filename:name,data});msg('تم تجهيز الملف: '+name)}catch(e){msg(e&&e.code=='declined'?'تم إلغاء التنزيل.':'تعذّر الحفظ: '+((e&&e.message)||e))}}
+$('eg').onclick=()=>{if(!mesh)return;new THREE.GLTFExporter().parse(mesh.clone(),async buf=>{const z=new JSZip();z.file('nexora-model.glb',buf);save('nexora-glb.zip',await z.generateAsync({type:'uint8array'}))},{binary:true})};
+$('eo').onclick=async()=>{if(!mesh)return;const z=new JSZip();const o=new THREE.OBJExporter().parse(mesh.clone());z.file('nexora-model.obj','mtllib nexora-model.mtl\n'+o);z.file('nexora-model.mtl','newmtl front\nmap_Kd texture.png\nnewmtl side\nKd 0.65 0.57 0.74\n');const b=await new Promise(r=>texC.toBlob(r,'image/png'));z.file('texture.png',b);save('nexora-obj.zip',await z.generateAsync({type:'uint8array'}))};
+
+// ---- sandbox
+let sb=false,pl={x:0,z:0,y:0,vy:0,ang:0},score=0;const keys={};const coins=[],cyls=[];
+(function(){const gr=new THREE.Mesh(new THREE.CircleGeometry(14,48),new THREE.MeshStandardMaterial({color:0x17171d,roughness:.9}));gr.rotation.x=-Math.PI/2;box.add(gr);box.add(new THREE.GridHelper(28,28,0x6a5a86,0x25252e));
+ [[4,-3,1.3,1],[-5,-6,1,1.8],[-3,5,1.6,.6],[6,4,1.1,1.4]].forEach(([x,z,r,h])=>{const c=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,24),new THREE.MeshStandardMaterial({color:0x2c2a36,metalness:.6,roughness:.4}));c.position.set(x,h/2,z);box.add(c);cyls.push({x,z,r,h})});
+ for(let i=0;i<8;i++){const c=new THREE.Mesh(new THREE.OctahedronGeometry(.3),new THREE.MeshStandardMaterial({color:0xb79be0,emissive:0x5b3f8a,metalness:.8,roughness:.2}));c.position.set((Math.random()-.5)*20,1.3,(Math.random()-.5)*20);box.add(c);coins.push(c)}})();
+$('mode').onclick=()=>{sb=!sb;box.visible=sb;ctl.autoRotate=!sb;ctl.enabled=!sb;$('pad').style.display=sb&&matchMedia('(pointer:coarse)').matches?'flex':'none';
+ $('mode').textContent=sb?'الرجوع للمعاينة':'دخول ساحة اللعب (Sandbox)';
+ if(sb){model.scale.setScalar(.6);pl={x:0,z:0,y:0,vy:0,ang:0};score=0;msg('تحرّك بـ WASD أو الأسهم، والمسافة للقفز. اجمع البلورات.')}else{model.scale.setScalar(1);model.position.set(0,0,0);model.rotation.set(0,0,0);cam.position.set(0,0,5.5);ctl.target.set(0,0,0)}};
+addEventListener('keydown',e=>{const k=e.key.toLowerCase();keys[{arrowup:'w',arrowdown:'s',arrowleft:'a',arrowright:'d'}[k]||k]=1;if(sb&&(k==' '||k.startsWith('arrow')))e.preventDefault()});
+addEventListener('keyup',e=>{const k=e.key.toLowerCase();keys[{arrowup:'w',arrowdown:'s',arrowleft:'a',arrowright:'d'}[k]||k]=0});
+document.querySelectorAll('#pad button').forEach(b=>{const k=b.dataset.k;['pointerdown'].forEach(ev=>b.addEventListener(ev,e=>{e.preventDefault();keys[k]=1}));['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>keys[k]=0))});
+const clock=new THREE.Clock();
+function step(dt){
+  const sp=5;let dx=(keys.d?1:0)-(keys.a?1:0),dz=(keys.s?1:0)-(keys.w?1:0);
+  if(dx||dz){const l=Math.hypot(dx,dz);dx/=l;dz/=l;pl.x+=dx*sp*dt;pl.z+=dz*sp*dt;pl.ang=Math.atan2(dx,dz)}
+  const half=1.3*.6;
+  cyls.forEach(c=>{if(pl.y<c.h-.1){const ex=pl.x-c.x,ez=pl.z-c.z,d=Math.hypot(ex,ez),m=c.r+.4;if(d<m){pl.x=c.x+ex/(d||1)*m;pl.z=c.z+ez/(d||1)*m}}});
+  pl.x=Math.max(-13,Math.min(13,pl.x));pl.z=Math.max(-13,Math.min(13,pl.z));
+  let sup=0;cyls.forEach(c=>{if(Math.hypot(pl.x-c.x,pl.z-c.z)<c.r+.2&&pl.y>=c.h-.35)sup=Math.max(sup,c.h)});
+  pl.vy-=24*dt;pl.y+=pl.vy*dt;let on=false;if(pl.y<=sup){pl.y=sup;pl.vy=0;on=true}
+  if(keys[' ']&&on)pl.vy=9;
+  model.position.set(pl.x,pl.y+half,pl.z);model.rotation.y+=(pl.ang-model.rotation.y)*Math.min(1,dt*8);
+  coins.forEach(c=>{c.rotation.y+=dt*2;if(c.visible&&Math.hypot(c.position.x-pl.x,c.position.z-pl.z)<1&&Math.abs(c.position.y-(pl.y+half))<1.4){c.visible=false;score++;if(score==coins.length)msg('أحسنت! جمعت كل البلورات.')}});
+  cam.position.lerp(new THREE.Vector3(pl.x,pl.y+5,pl.z+8),Math.min(1,dt*4));cam.lookAt(pl.x,pl.y+1,pl.z);
+  $('hl').textContent='البلورات: '+score+' / '+coins.length;
+}
+function loop(){requestAnimationFrame(loop);const dt=Math.min(.05,clock.getDelta());if(sb)step(dt);else{ctl.update();$('hl').textContent=''}renderer.render(scene,cam)}
+$('hr').textContent='Nexora 3D';
+resize();loadDemo();loop();
+</script>
+</body>
+</html>
